@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview — In Progress</title>
+  <link rel="stylesheet" href="/static/styles/main.css" />
+</head>
+<body>
+
+  <main class="interview-page">
+    <div class="interview-container">
+
+      <!-- Top bar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="logo-box logo-box--small">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                 viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M12 2a10 10 0 1 0 10 10"/>
+              <path d="M12 6v6l4 2"/>
+              <circle cx="18" cy="6" r="3"/>
+            </svg>
+          </div>
+          <div>
+            <p class="topbar-label">Interviewing</p>
+            <p class="topbar-name" id="candidate-name">Candidate</p>
+          </div>
+        </div>
+        <span class="badge badge-live">● Live Interview</span>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading-state" class="center-state">
+        <div class="spinner spinner--lg"></div>
+        <p class="state-text">Preparing your interview questions…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="center-state hidden">
+        <div class="alert alert-error" id="error-message"></div>
+        <button class="btn btn-primary" id="retry-btn" onclick="retryInterview()">
+          Try Again
+        </button>
+      </div>
+
+      <!-- Interview UI -->
+      <div id="interview-ui" class="hidden">
+
+        <!-- Progress -->
+        <div class="card" id="progress-card">
+          <div class="progress-header">
+            <span class="progress-label">Interview Progress</span>
+            <span class="progress-pct" id="progress-pct">0% complete</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-dots" id="progress-dots"></div>
+        </div>
+
+        <!-- Question -->
+        <div class="card" id="question-card">
+          <div class="question-header">
+            <span class="badge badge-question" id="question-badge">
+              Question 1 of 5
+            </span>
+            <button class="btn-audio" id="play-audio-btn"
+                    onclick="toggleAudio()" style="display:none">
+              <svg id="audio-icon-play" xmlns="http://www.w3.org/2000/svg"
+                   width="15" height="15" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+              <span id="audio-btn-text">Play Audio</span>
+            </button>
+          </div>
+          <p class="question-text" id="question-text">Loading question…</p>
+          <audio id="question-audio" style="display:none"></audio>
+        </div>
+
+        <!-- Transcript -->
+        <div class="card bg-light hidden" id="transcript-card">
+          <p class="transcript-label">Your Answer (transcribed):</p>
+          <p class="transcript-text" id="transcript-text"></p>
+        </div>
+
+        <!-- Recorder -->
+        <div class="card" id="recorder-card">
+          <h3 class="recorder-title">Record Your Answer</h3>
+
+          <div class="waveform-area" id="waveform-area">
+            <div class="waveform hidden" id="waveform">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <span class="recording-label">Recording…</span>
+            </div>
+            <p class="idle-label"  id="idle-label">
+              Press the mic to start recording your answer
+            </p>
+            <p class="ready-label hidden" id="ready-label">
+              ✓ Recording ready
+            </p>
+          </div>
+
+          <div class="recorder-controls">
+            <button class="btn btn-primary" id="record-btn"
+                    onclick="startRecording()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8"  y1="23" x2="16" y2="23"/>
+              </svg>
+              Record Answer
+            </button>
+
+            <button class="btn btn-danger hidden" id="stop-btn"
+                    onclick="stopRecording()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              Stop Recording
+            </button>
+
+            <button class="btn btn-secondary hidden" id="redo-btn"
+                    onclick="clearRecording()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.27"/>
+              </svg>
+              Redo
+            </button>
+
+            <button class="btn btn-primary hidden" id="submit-answer-btn"
+                    onclick="submitAnswer()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              Submit Answer
+            </button>
+          </div>
+
+          <!-- Audio preview -->
+          <div id="audio-preview" class="hidden">
+            <p class="preview-label">Preview your recording:</p>
+            <audio id="recorded-audio" controls class="audio-player"></audio>
+          </div>
+        </div>
+
+        <!-- Processing -->
+        <div class="card bg-light text-center hidden" id="processing-card">
+          <div class="spinner spinner--sm"></div>
+          <p class="processing-text">Evaluating your answer…</p>
+        </div>
+
+      </div><!-- end interview-ui -->
+    </div>
+  </main>
+
+  <script src="/static/scripts/api.js"></script>
+  <script src="/static/scripts/interview.js"></script>
+</body>
+</html>

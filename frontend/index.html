@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Interview System — Register</title>
+  <!-- Issue 6: Use /static/ prefix so FastAPI serves these correctly -->
+  <link rel="stylesheet" href="/fontend/styles/main.css" />
+</head>
+<body>
+
+  <main class="auth-page">
+    <div class="auth-container">
+
+      <!-- Header -->
+      <div class="auth-header">
+        <div class="logo-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+               viewBox="0 0 24 24" fill="none" stroke="white"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10"/>
+            <path d="M12 6v6l4 2"/>
+            <circle cx="18" cy="6" r="3"/>
+          </svg>
+        </div>
+        <h1>AI Interview</h1>
+        <p>Register to begin your AI-powered technical interview</p>
+      </div>
+
+      <!-- Card -->
+      <div class="card">
+        <h2>Candidate Registration</h2>
+
+        <div id="form-error" class="alert alert-error hidden"></div>
+
+        <form id="register-form" novalidate>
+
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+              </span>
+              <input type="text" id="name" name="name"
+                     placeholder="John Doe" autocomplete="name" />
+            </div>
+            <span class="field-error" id="name-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="qualification">Qualification</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
+              </span>
+              <input type="text" id="qualification" name="qualification"
+                     placeholder="B.Tech in Computer Science" />
+            </div>
+            <span class="field-error" id="qualification-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="experience">Experience</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14
+                                   18.18 21.02 12 17.77 5.82 21.02
+                                   7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </span>
+              <input type="text" id="experience" name="experience"
+                     placeholder="3 years of backend development" />
+            </div>
+            <span class="field-error" id="experience-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="skills">Skills</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
+                </svg>
+              </span>
+              <input type="text" id="skills" name="skills"
+                     placeholder="Python, FastAPI, PostgreSQL, Docker" />
+            </div>
+            <span class="field-error" id="skills-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="role">Role Applying For</label>
+            <div class="input-wrapper">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+              </span>
+              <input type="text" id="role" name="role"
+                     placeholder="Senior Backend Engineer" />
+            </div>
+            <span class="field-error" id="role-error"></span>
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-full">
+            <span id="btn-text">Start Interview</span>
+            <span id="btn-spinner" class="spinner hidden"></span>
+          </button>
+
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Issue 6: /static/ prefix for JS -->
+  <script src="/frontend/scripts/api.js"></script>
+  <script src="/frontend/scripts/register.js"></script>
+</body>
+</html>
