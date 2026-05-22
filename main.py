@@ -45,9 +45,8 @@ logger.info(f"Loading .env from: {_ENV_FILE}  (exists={_ENV_FILE.exists()})")
 # PROJECT_ROOT = C:\Users\DELL\Desktop\interview bot
 # FRONTEND_DIR = C:\Users\DELL\Desktop\interview bot\frontend
 # ---------------------------------------------------------------------------
-BASE_DIR     = Path(__file__).resolve().parent        # backend/
-PROJECT_ROOT = BASE_DIR.parent                        # interview bot/
-
+PROJECT_ROOT = Path(__file__).resolve().parent
+BASE_DIR = PROJECT_ROOT
 # Only use env var override if explicitly set AND the path actually exists
 # Otherwise always fall back to automatic sibling-folder detection
 def _resolve_dir(env_key: str, default: Path) -> Path:
@@ -239,7 +238,12 @@ async def serve_index():
     return FileResponse(Path("frontend") / "index.html")
 
 
-@app.get("/interview",      include_in_schema=False)
+# @app.get("/", include_in_schema=False)
+# async def serve_index():
+#     return serve_html("index.html")
+
+# @app.get("/interview",      include_in_schema=False)
+@app.get("/interview", include_in_schema=False)
 @app.get("/interview.html", include_in_schema=False)
 async def serve_interview():
     return serve_html("interview.html")
