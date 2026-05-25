@@ -45,10 +45,11 @@ async def check_completion_node(state: InterviewState) -> InterviewState:
 
         # -- Count how many Q&A records have been saved
         count_result = await db.execute(
-            select(func.count(QuestionAnswer.id)).where(
-                QuestionAnswer.session_id == session_id
-            )
-        )
+    select(func.count(QuestionAnswer.id)).where(
+        QuestionAnswer.session_id == session_id,
+        QuestionAnswer.feedback != "",
+    )
+)
         answered_count = count_result.scalar() or 0
 
         is_complete = answered_count >= total_questions

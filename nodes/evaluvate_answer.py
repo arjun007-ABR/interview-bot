@@ -14,47 +14,39 @@ evaluation_service = EvaluationService()
 
 async def evaluate_answer_node(state: InterviewState) -> InterviewState:
     """
-    BUG FIX — Bug 3:
-    Original code tried to load question_text from the DB first.
-    But at evaluation time, the question has NOT been saved to DB yet —
-    it only exists in state["current_question"] (put there by
-    generate_question_node in the previous turn).
+    Evaluates the candidate's answer against the question and role,
+    now also passing the Bloom's taxonomy level so the LLM scorer
+    can calibrate its rubric appropriately.
 
-    Correct priority:
-      1. Read question_text from state["current_question"]  ← primary source
-      2. Fall back to DB only if state is empty (edge case)
-
-    Also fixed: question_index was being incremented here AND in
-    load_candidate_node causing double increment.
+    Scoring rubric intent per level:
+        remember   — did they recall the fact/definition correctly?
+        understand — did they explain the concept clearly?
+        apply      — did they apply the concept correctly to the scenario?
+        analyze    — did they identify the right trade-offs / break it down well?
+        evaluate   — did they give a well-reasoned, justified recommendation?
     """
     db: AsyncSession = state["db"]
     session_id       = state["session_id"]
     question_index   = state.get("question_index")
-    answer_text      = state.get("answer_text", "")
+    answer_text      = state.get("answer_text", "") or ""
     role             = state.get("candidate_role", "")
-
-    # Normalize answer — None becomes empty string for evaluation
-    if answer_text is None:
-        answer_text = ""
+    blooms_level     = state.get("blooms_level") or "remember"
 
     logger.info(
         f"evaluate_answer_node | "
         f"session={session_id} | "
         f"question_index={question_index} | "
+        f"blooms_level={blooms_level} | "
         f"answer_preview='{answer_text[:60]}'"
     )
 
     try:
         # ------------------------------------------------------------------
-        # BUG FIX — Bug 3:
-        # Get question_text from STATE first — it's always there from
-        # the previous generate_question_node call.
-        # Only fall back to DB if state doesn't have it.
+        # Get question_text from state first; fall back to DB
         # ------------------------------------------------------------------
-        question_text = state.get("current_question", "").strip()
+        question_text = (state.get("current_question") or "").strip()
 
         if not question_text:
-            # Fallback: try loading from DB (edge case: session resumed)
             logger.warning(
                 f"current_question not in state — falling back to DB | "
                 f"session={session_id} | index={question_index}"
@@ -68,28 +60,26 @@ async def evaluate_answer_node(state: InterviewState) -> InterviewState:
             existing_qa = qa_result.scalar_one_or_none()
 
             if existing_qa:
-                # Already evaluated — skip re-evaluation to avoid duplicates
+                # Already evaluated — skip re-evaluation
                 logger.warning(
-                    f"Q&A already exists in DB for index={question_index} | "
+                    f"Q&A already in DB for index={question_index} | "
                     f"session={session_id} — skipping re-evaluation"
                 )
-                next_index = question_index + 1
                 return {
                     **state,
                     "score":          existing_qa.score,
                     "feedback":       existing_qa.feedback,
-                    "question_index": next_index,
+                    "question_index": question_index + 1,
                     "error":          None,
                 }
 
-            # Truly missing — cannot evaluate
             raise ValueError(
                 f"Question text not found in state or DB | "
                 f"session={session_id} | index={question_index}"
             )
 
         # ------------------------------------------------------------------
-        # Evaluate + SAVE IMMEDIATELY via EvaluationService
+        # Evaluate + save — pass blooms_level for rubric calibration
         # ------------------------------------------------------------------
         result = await evaluation_service.evaluate_and_save(
             db             = db,
@@ -98,14 +88,17 @@ async def evaluate_answer_node(state: InterviewState) -> InterviewState:
             question_text  = question_text,
             answer_text    = answer_text,
             role           = role,
+            # New parameter — EvaluationService.evaluate_and_save must
+            # accept this and include it in the scoring prompt
+            blooms_level   = blooms_level,
         )
 
-        # Increment index for next question
         next_index = question_index + 1
 
         logger.info(
             f"evaluate_answer_node complete | "
             f"session={session_id} | "
+            f"blooms={blooms_level} | "
             f"score={result['score']} | "
             f"next_index={next_index}"
         )
@@ -114,7 +107,7 @@ async def evaluate_answer_node(state: InterviewState) -> InterviewState:
             **state,
             "score":          result["score"],
             "feedback":       result["feedback"],
-            "question_index": next_index,       # ← incremented here only
+            "question_index": next_index,
             "error":          None,
         }
 

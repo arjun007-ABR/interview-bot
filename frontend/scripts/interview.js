@@ -172,10 +172,10 @@ function setQuestion(text, index, total) {
     if (badge)      badge.textContent      = `Question ${index} of ${total}`;
     if (questionEl) questionEl.textContent = text || "Loading…";
     if (audioBtn) {
-        audioBtn.style.display = "none";
-        audioBtn.classList.remove("playing");
-    }
-
+    audioBtn.style.display = "inline-flex";
+    audioBtn.disabled = true;
+    audioBtn.classList.remove("playing");
+}
     const audioLabel = document.getElementById("audio-btn-text");
     if (audioLabel) audioLabel.textContent = "Play Audio";
     audioPlaying = false;
@@ -184,32 +184,87 @@ function setQuestion(text, index, total) {
 // ---------------------------------------------------------------------------
 // TTS
 // ---------------------------------------------------------------------------
+
 async function fetchQuestionAudio(text) {
+    const btn = document.getElementById("play-audio-btn");
+    const audioEl = document.getElementById("question-audio");
+
     try {
-        const data    = await textToAudio(text, sessionId);
-        // Issue 3 — Use relative URL since API_BASE handles the base
-        const audioUrl = `${API_BASE}${data.audio_url}`;
-        const audioEl  = document.getElementById("question-audio");
-        if (!audioEl) return;
+        if (!btn || !audioEl) {
+            console.error("[Interview] Audio elements missing");
+            return;
+        }
+
+        // ALWAYS KEEP BUTTON VISIBLE
+        btn.style.display = "inline-flex";
+        btn.disabled = true;
+
+        // RESET AUDIO
+        audioPlaying = false;
+
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        audioEl.removeAttribute("src");
+        audioEl.load();
+
+        console.log("[Interview] Requesting TTS...");
+
+        const data = await textToAudio(text, sessionId);
+
+        console.log("[Interview] TTS response:", data);
+
+        // VALIDATE RESPONSE
+        if (!data || !data.audio_url) {
+            console.error("[Interview] Invalid audio response:", data);
+
+            const label = document.getElementById("audio-btn-text");
+            if (label) {
+                label.textContent = "Audio Unavailable";
+            }
+
+            return;
+        }
+
+        // FORCE FRESH URL
+        const audioUrl =
+            `${API_BASE}${data.audio_url}?t=${Date.now()}`;
+
+        console.log("[Interview] Audio URL:", audioUrl);
 
         audioEl.src = audioUrl;
         audioEl.load();
 
-        audioEl.addEventListener("canplaythrough", () => {
-            const btn = document.getElementById("play-audio-btn");
-            if (btn) btn.style.display = "inline-flex";
-        }, { once: true });
+        // ENABLE BUTTON
+        btn.disabled = false;
 
-        audioEl.addEventListener("ended", () => {
+        const label = document.getElementById("audio-btn-text");
+        if (label) {
+            label.textContent = "Play Audio";
+        }
+
+        audioEl.onended = () => {
             audioPlaying = false;
-            const btn   = document.getElementById("play-audio-btn");
+
+            btn.classList.remove("playing");
+
             const label = document.getElementById("audio-btn-text");
-            if (btn)   btn.classList.remove("playing");
-            if (label) label.textContent = "Play Audio";
-        });
+            if (label) {
+                label.textContent = "Play Audio";
+            }
+        };
 
     } catch (err) {
-        console.warn("[Interview] TTS failed (non-fatal):", err.message);
+        console.error("[Interview] TTS failed:", err);
+
+        if (btn) {
+            btn.style.display = "inline-flex";
+            btn.disabled = true;
+        }
+
+        const label = document.getElementById("audio-btn-text");
+        if (label) {
+            label.textContent = "Audio Error";
+        }
     }
 }
 
@@ -342,11 +397,16 @@ async function submitAnswer() {
         showTranscript(answerText || "(No speech detected)");
         clearRecording();
 
+        // KEEP transcript visible with current question
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
         // Step 2 — Agent respond
-        // answerText passed as-is — even "" is a valid answer (not null)
         const data = await agentRespond(sessionId, answerText, currentIndex);
 
         console.log("[Interview] agentRespond:", data);
+
+        hideTranscript(); // hide old transcript before next question
+
         showProcessing(false);
         handleAgentResponse(data);
 

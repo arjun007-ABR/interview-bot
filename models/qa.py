@@ -11,7 +11,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
-
+from sqlalchemy import UniqueConstraint
 from database import Base
 
 
@@ -26,6 +26,13 @@ class QuestionAnswer(Base):
 
     __tablename__ = "questions_answers"
 
+    __table_args__ = (
+    UniqueConstraint(
+        "session_id",
+        "question_index",
+        name="uq_session_question"
+    ),
+)
     # ------------------------------------------------------------------
     # Columns
     # ------------------------------------------------------------------

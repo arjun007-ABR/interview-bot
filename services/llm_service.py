@@ -73,6 +73,7 @@ class LLMService:
         qualification: str,
         question_index: int,
         previous_questions: list[str],
+        blooms_instruction: str = "",
     ) -> str:
         """
         Generates the next interview question tailored to the candidate.
@@ -94,7 +95,7 @@ Rules:
 - Tailor the question to the candidate's role and skills.
 - Vary question types: conceptual, practical, problem-solving, behavioral.
 - Keep the question concise and unambiguous.
-- Return ONLY the question — no preamble, no numbering, no explanation."""
+- Return ONLY the question — no preamble, no numbering, no explanation.""" + blooms_instruction
 
         user_prompt = f"""Generate interview question #{question_index} for this candidate:
 

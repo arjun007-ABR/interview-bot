@@ -87,22 +87,33 @@ async def safe_generate_report(state: InterviewState) -> InterviewState:
 # ---------------------------------------------------------------------------
 # Router — entry point
 # ---------------------------------------------------------------------------
-def route_entry(state: InterviewState) -> str:
-    answer_text = state.get("answer_text")
+def route_entry(state: InterviewState):
 
-    if answer_text is None:
+    answer_text = state.get("answer_text")
+    question_index = state.get("question_index")
+
+    # --------------------------------------------------------------
+    # FIRST REQUEST
+    # No answer + no question index yet
+    # --------------------------------------------------------------
+    if not question_index and not answer_text:
+
         logger.info(
             f"[GRAPH] route_entry → load_candidate | "
             f"session={state['session_id']}"
         )
+
         return "load_candidate"
 
+    # --------------------------------------------------------------
+    # Candidate answered previous question
+    # --------------------------------------------------------------
     logger.info(
         f"[GRAPH] route_entry → evaluate_answer | "
         f"session={state['session_id']} | "
-        f"q_index={state.get('question_index')} | "
-        f"answer='{str(answer_text)[:50]}'"
+        f"q_index={question_index}"
     )
+
     return "evaluate_answer"
 
 
@@ -206,17 +217,22 @@ def reset_compiled_graph():
     global _compiled_graph
     _compiled_graph = None
 
-
 # ---------------------------------------------------------------------------
 # run_interview_graph
 # ---------------------------------------------------------------------------
+from sqlalchemy import select
+from models.qa import QuestionAnswer
+
+
 async def run_interview_graph(
-    session_id    : str,
-    answer_text   : Optional[str],
+    session_id: str,
+    answer_text: Optional[str],
     question_index: Optional[int],
-    db            : AsyncSession,
+    db: AsyncSession,
 ) -> dict:
-    graph         = get_compiled_graph()
+
+    graph = get_compiled_graph()
+
     is_first_call = answer_text is None
 
     logger.info(
@@ -227,32 +243,94 @@ async def run_interview_graph(
         f"answer='{str(answer_text)[:40] if answer_text is not None else None}'"
     )
 
+    # -----------------------------------------------------------------------
+    # Load current question from DB
+    # Needed while evaluating candidate answer
+    # -----------------------------------------------------------------------
+    current_question = None
+
+    if question_index is not None:
+
+        result = await db.execute(
+            select(QuestionAnswer).where(
+                QuestionAnswer.session_id == session_id,
+                QuestionAnswer.question_index == question_index,
+            )
+        )
+
+        qa = result.scalars().first()
+
+        if qa:
+            current_question = qa.question_text
+
+            logger.info(
+                f"[GRAPH] Loaded question from DB | "
+                f"session={session_id} | "
+                f"q_index={question_index}"
+            )
+
+        else:
+            logger.warning(
+                f"[GRAPH] Question not found in DB | "
+                f"session={session_id} | "
+                f"q_index={question_index}"
+            )
+
+    # -----------------------------------------------------------------------
+    # Initial graph state
+    # -----------------------------------------------------------------------
     initial_state: InterviewState = {
+
         "session_id":              session_id,
+
         "candidate_id":            None,
         "candidate_name":          None,
         "candidate_role":          None,
         "candidate_skills":        None,
         "candidate_experience":    None,
         "candidate_qualification": None,
+
         "question_index":          question_index,
         "total_questions":         None,
-        "current_question":        None,
+
+        # IMPORTANT FIX
+        "current_question":        current_question,
+
         "previous_questions":      [],
-        "answer_text":             answer_text,
+
+        # SAFE FIX
+        "answer_text":             (answer_text or "").strip(),
+
         "score":                   None,
         "feedback":                None,
         "is_complete":             False,
         "report":                  None,
         "error":                   None,
+
         "db":                      db,
     }
 
+    # -----------------------------------------------------------------------
+    # Execute graph
+    # -----------------------------------------------------------------------
     final_state = await graph.ainvoke(initial_state)
 
+    # -----------------------------------------------------------------------
+    # Handle graph errors
+    # -----------------------------------------------------------------------
     if final_state.get("error"):
+
+        logger.error(
+            f"[GRAPH] Error in state | "
+            f"session={session_id} | "
+            f"error={final_state['error']}"
+        )
+
         raise RuntimeError(final_state["error"])
 
+    # -----------------------------------------------------------------------
+    # Final API response
+    # -----------------------------------------------------------------------
     result = {
         "question_text":  final_state.get("current_question"),
         "question_index": final_state.get("question_index"),
