@@ -232,7 +232,9 @@ Hire recommendation guide:
 Rules:
 - Be professional and objective.
 - Strengths and weaknesses must reference specific answers.
-- Return ONLY valid JSON — no markdown, no preamble."""
+- Return ONLY valid JSON — no markdown, no preamble.
+- Don't ask any writing questions, only ask questions based on theory .
+"""
 
         user_prompt = f"""Candidate: {candidate_name}
 Role: {role}
