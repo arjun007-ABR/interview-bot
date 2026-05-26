@@ -4,5 +4,5 @@ __pycache__/
 *.wav
 *.webm
 *.pyc
-*.lock
 *.db
+interview.db
