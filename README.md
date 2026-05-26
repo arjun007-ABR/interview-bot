@@ -8,6 +8,8 @@ The interview progresses through a structured cognitive framework based on **Blo
 The backend is powered by **FastAPI** and **LangGraph** (for stateful agent workflows), with **SQLAlchemy** for database management. It integrates Speech-to-Text (STT) and Text-to-Speech (TTS) services to provide a seamless conversational experience.
 
 ## folder structure
+
+```text
   interview bot/
 │
 ├── agent/
@@ -85,6 +87,7 @@ The backend is powered by **FastAPI** and **LangGraph** (for stateful agent work
 ├── pyproject.toml
 ├── README.md
 └── uv.lock
+```
 
 ## Graph Flow (LangGraph)
 The interview logic is orchestrated using a state graph (`LangGraph`), ensuring robust state management across the session:
