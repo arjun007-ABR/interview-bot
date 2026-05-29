@@ -126,66 +126,28 @@ Return only the next question."""
     # ------------------------------------------------------------------
     async def evaluate_answer(
         self,
-        role: str,
-        question: str,
-        answer: str,
-    ) -> dict:
+        prompt: str,
+    ) -> str:
         """
-        Evaluates a candidate's answer and returns:
-        {
-            "score": float (0.0 – 10.0),
-            "feedback": str
-        }
+        Executes evaluation prompt and returns raw LLM output.
+        Parsing is handled by EvaluationService.
         """
-        system_prompt = """You are a strict but fair technical interviewer evaluating 
-a candidate's answer. You must return a JSON object with exactly these keys:
 
-{
-  "score": <float between 0.0 and 10.0>,
-  "feedback": "<detailed constructive feedback string>"
-}
-
-Scoring guide:
-  9–10 : Exceptional — complete, accurate, with depth and examples
-  7–8  : Good — mostly correct with minor gaps
-  5–6  : Average — partially correct, missing key points
-  3–4  : Below average — significant gaps or misconceptions
-  0–2  : Poor — incorrect or no meaningful answer
-
-Rules:
-- Be objective and consistent.
-- Feedback must be constructive and specific.
-- Return ONLY valid JSON — no preamble, no markdown, no explanation."""
-
-        user_prompt = f"""Role being interviewed for: {role}
-
-Question asked:
-{question}
-
-Candidate's answer:
-{answer}
-
-Evaluate the answer and return JSON."""
+        system_prompt = (
+            "You are a strict but fair technical interviewer. "
+            "Return ONLY valid JSON."
+        )
 
         raw = await self._chat(
             system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            temperature=0.3,    # lower temp for consistent scoring
+            user_prompt=prompt,
+            temperature=0.3,
             max_tokens=512,
         )
 
-        result = self._parse_json(raw, fallback={
-            "score": 0.0,
-            "feedback": "Unable to evaluate answer.",
-        })
+        logger.info("LLM evaluation response received")
 
-        # Clamp score to valid range
-        result["score"] = max(0.0, min(10.0, float(result.get("score", 0.0))))
-        logger.info(
-            f"Answer evaluated | score={result['score']} | "
-            f"feedback={result['feedback'][:60]}..."
-        )
-        return result
+        return raw
 
     # ------------------------------------------------------------------
     # Report Generation

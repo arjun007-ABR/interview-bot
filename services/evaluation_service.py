@@ -223,6 +223,7 @@ Rules:
         # ------------------------------------------------------------------
         try:
             raw      = await self.llm.evaluate_answer(prompt=prompt)
+            logger.info(f"RAW LLM RESPONSE:\n{raw}")
             score, feedback = self._parse_llm_response(raw)
 
             logger.info(
